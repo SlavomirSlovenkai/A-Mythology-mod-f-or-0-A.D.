@@ -1183,6 +1183,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
+					this.ready = g_Stances[this.stance].keepReady;
 					let cmpFormation = Engine.QueryInterface(this.entity, IID_Formation);
 					cmpFormation.SetRearrange(true);
 					cmpFormation.MoveMembersIntoFormation(true, true);
@@ -1256,6 +1257,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
+					this.ready = g_Stances[this.stance].keepReady;
 					let cmpFormation = Engine.QueryInterface(this.entity, IID_Formation);
 					cmpFormation.SetRearrange(true);
 					cmpFormation.MoveMembersIntoFormation(true, true, "combat");
@@ -1479,6 +1481,7 @@ UnitAI.prototype.UnitFsmSpec = {
 					if (cmpFormation)
 						this.formationAnimationVariant = cmpFormation.GetFormationAnimationVariant(this.entity);
 				}
+				this.ready = g_Stances[this.stance].keepReady;
 				if (this.formationAnimationVariant)
 					this.SetAnimationVariant(this.formationAnimationVariant);
 				else if (this.order.data.variant)
@@ -1520,6 +1523,7 @@ UnitAI.prototype.UnitFsmSpec = {
 					this.FinishOrder();
 					return true;
 				}
+				this.ready = g_Stances[this.stance].keepReady;
 				return false;
 			},
 
@@ -1751,6 +1755,7 @@ UnitAI.prototype.UnitFsmSpec = {
 					this.FinishOrder();
 					return true;
 				}
+				this.ready = g_Stances[this.stance].keepReady;
 				return false;
 			},
 
@@ -2758,6 +2763,7 @@ UnitAI.prototype.UnitFsmSpec = {
 
 			"APPROACHING": {
 				"enter": function() {
+					this.ready = g_Stances[this.stance].keepReady;
 					this.gatheringTarget = this.order.data.target;	// temporary, deleted in "leave".
 
 					// Check that we can gather from the resource we're supposed to gather from.
@@ -2816,6 +2822,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
+					this.ready = g_Stances[this.stance].keepReady;
 					this.SetAnimationVariant("approach_" + this.order.data.type.specific);
 					return false;
 				},
@@ -3076,6 +3083,7 @@ UnitAI.prototype.UnitFsmSpec = {
 
 			"APPROACHING": {
 				"enter": function() {
+					this.ready = g_Stances[this.stance].keepReady;
 					if (this.CheckRange(this.order.data, IID_Heal))
 					{
 						this.SetNextState("HEALING");
@@ -3222,6 +3230,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
+					this.ready = g_Stances[this.stance].keepReady;
 					return false;
 				},
 
@@ -3522,7 +3531,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
-
+					this.ready = g_Stances[this.stance].keepReady;
 					// If a pickup was still pending, cancel that.
 					if (this.pickup)
 						Engine.PostMessage(this.pickup, MT_PickupCanceled, { "entity": this.entity });
@@ -3720,6 +3729,7 @@ UnitAI.prototype.UnitFsmSpec = {
 						this.FinishOrder();
 						return true;
 					}
+					this.ready = g_Stances[this.stance].keepReady;
 					return false;
 				},
 
