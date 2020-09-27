@@ -2,41 +2,6 @@ function Attack() {}
 
 var g_AttackTypes = ["Melee", "Ranged", "Capture"];
 
-Attack.prototype.knockBackBonusSchema =
-	"<optional>" +
-		"<element name='KnockBack' a:help='Knock the target back the given number of tiles'>" +
-			"<interleave>" +
-				"<element name='Strength' a:help='Distance'>" +
-					"<data type='positiveInteger'/>" +
-				"</element>" +
-				"<element name='AffectedClasses' a:help='Knockback dealt only to these classes'>" +
-					"<attribute name='datatype'>" +
-						"<value>tokens</value>" +
-					"</attribute>" +
-					"<text/>" +
-				"</element>" +
-			"</interleave>" +
-		"</element>" +
-	"</optional>";
-
-Attack.prototype.bonusesSchema =
-	"<optional>" +
-		"<element name='Bonuses'>" +
-			"<zeroOrMore>" +
-				"<element>" +
-					"<anyName/>" +
-					"<interleave>" +
-						"<optional>" +
-							"<element name='Civ' a:help='If an entity has this civ then the bonus is applied'><text/></element>" +
-						"</optional>" +
-						"<element name='Classes' a:help='If an entity has all these classes then the bonus is applied'><text/></element>" +
-						"<element name='Multiplier' a:help='The attackers attack strength is multiplied by this'><ref name='nonNegativeDecimal'/></element>" +
-					"</interleave>" +
-				"</element>" +
-			"</zeroOrMore>" +
-		"</element>" +
-	"</optional>";
-
 Attack.prototype.preferredClassesSchema =
 	"<optional>" +
 		"<element name='PreferredClasses' a:help='Space delimited list of classes preferred for attacking. If an entity has any of theses classes, it is preferred. The classes are in decending order of preference'>" +
@@ -124,13 +89,13 @@ Attack.prototype.Schema =
 		"<element name='Melee'>" +
 			"<interleave>" +
 				"<optional>"+
-				  "<element name='Charge'>"+
-				    "<interleave>"+
-				        "<element name='DamageMultiplier'><ref name='nonNegativeDecimal'/></element>"+
-					"</interleave>"+
-				   "</element>"+
+					"<element name='Charge'>"+
+						"<interleave>"+
+							"<element name='DamageMultiplier'><ref name='nonNegativeDecimal'/></element>"+
+						"</interleave>"+
+					"</element>"+
 				"</optional>"+
-				DamageTypes.BuildSchema("damage strength") +
+				Attacking.BuildAttackEffectsSchema() +
 				"<element name='MaxRange' a:help='Maximum attack range (in metres)'><ref name='nonNegativeDecimal'/></element>" +
 				"<element name='PrepareTime' a:help='Time from the start of the attack command until the attack actually occurs (in milliseconds). This value relative to RepeatTime should closely match the \"event\" point in the actor&apos;s attack animation'>" +
 					"<data type='nonNegativeInteger'/>" +
@@ -138,8 +103,6 @@ Attack.prototype.Schema =
 				"<element name='RepeatTime' a:help='Time between attacks (in milliseconds). The attack animation will be stretched to match this time'>" + // TODO: it shouldn't be stretched
 					"<data type='positiveInteger'/>" +
 				"</element>" +
-				Attack.prototype.knockBackBonusSchema +
-				Attack.prototype.bonusesSchema +
 				Attack.prototype.preferredClassesSchema +
 				Attack.prototype.restrictedClassesSchema +
 			"</interleave>" +
@@ -154,7 +117,7 @@ Attack.prototype.Schema =
 				"<optional><element name='ReloadTime'><data type='nonNegativeInteger'/></element></optional>" +
 				"<optional><element name='RefillTime'><data type='nonNegativeInteger'/></element></optional>" +
 				"<optional><element name='RefillAmount'><data type='nonNegativeInteger'/></element></optional>" +
-				DamageTypes.BuildSchema("damage strength") +
+				Attacking.BuildAttackEffectsSchema() +
 				"<element name='MaxRange' a:help='Maximum attack range (in metres)'><ref name='nonNegativeDecimal'/></element>" +
 				"<element name='MinRange' a:help='Minimum attack range (in metres)'><ref name='nonNegativeDecimal'/></element>" +
 				"<optional>"+
@@ -176,8 +139,6 @@ Attack.prototype.Schema =
 					"<data type='positiveInteger'/>" +
 				"</element>" +
 				"<element name='Delay' a:help='Delay of the damage in milliseconds'><ref name='nonNegativeDecimal'/></element>" +
-				Attack.prototype.knockBackBonusSchema +
-				Attack.prototype.bonusesSchema +
 				Attack.prototype.preferredClassesSchema +
 				Attack.prototype.restrictedClassesSchema +
 				"<element name='Projectile'>" +
@@ -217,9 +178,7 @@ Attack.prototype.Schema =
 							"<element name='Shape' a:help='Shape of the splash damage, can be circular or linear'><text/></element>" +
 							"<element name='Range' a:help='Size of the area affected by the splash'><ref name='nonNegativeDecimal'/></element>" +
 							"<element name='FriendlyFire' a:help='Whether the splash damage can hurt non enemy units'><data type='boolean'/></element>" +
-							Attack.prototype.knockBackBonusSchema +
-							DamageTypes.BuildSchema("damage strength") +
-							Attack.prototype.bonusesSchema +
+							Attacking.BuildAttackEffectsSchema() +
 						"</interleave>" +
 					"</element>" +
 				"</optional>" +
@@ -229,12 +188,11 @@ Attack.prototype.Schema =
 	"<optional>" +
 		"<element name='Capture'>" +
 			"<interleave>" +
-				"<element name='Value' a:help='Capture points value'><ref name='nonNegativeDecimal'/></element>" +
+				Attacking.BuildAttackEffectsSchema() +
 				"<element name='MaxRange' a:help='Maximum attack range (in meters)'><ref name='nonNegativeDecimal'/></element>" +
 				"<element name='RepeatTime' a:help='Time between attacks (in milliseconds). The attack animation will be stretched to match this time'>" + // TODO: it shouldn't be stretched
 					"<data type='positiveInteger'/>" +
 				"</element>" +
-				Attack.prototype.bonusesSchema +
 				Attack.prototype.preferredClassesSchema +
 				Attack.prototype.restrictedClassesSchema +
 			"</interleave>" +
@@ -243,9 +201,8 @@ Attack.prototype.Schema =
 	"<optional>" +
 		"<element name='Slaughter' a:help='A special attack to kill domestic animals'>" +
 			"<interleave>" +
-				DamageTypes.BuildSchema("damage strength") +
+				Attacking.BuildAttackEffectsSchema() +
 				"<element name='MaxRange'><ref name='nonNegativeDecimal'/></element>" + // TODO: how do these work?
-				Attack.prototype.bonusesSchema +
 				Attack.prototype.preferredClassesSchema +
 				Attack.prototype.restrictedClassesSchema +
 			"</interleave>" +
@@ -534,6 +491,20 @@ Attack.prototype.GetFullAttackRange = function()
 	return ret;
 };
 
+Attack.prototype.GetAttackEffectsData = function(type, splash)
+{
+	let template = this.template[type];
+	if (splash)
+		template = template.Splash;
+	return Attacking.GetAttackEffectsData("Attack/" + type + (splash ? "/Splash" : ""), template, this.entity);
+};
+
+/**
+ * Find the best attack against a target.
+ * @param {number} target - The entity-ID of the target.
+ * @param {boolean} allowCapture - Whether capturing is allowed.
+ * @return {string} - The preferred attack type.
+ */
 Attack.prototype.GetBestAttackAgainst = function(target, allowCapture)
 {
 	let cmpFormation = Engine.QueryInterface(target, IID_Formation);
@@ -548,34 +519,23 @@ Attack.prototype.GetBestAttackAgainst = function(target, allowCapture)
 	if (!cmpIdentity)
 		return undefined;
 
-	let targetClasses = cmpIdentity.GetClassesList();
-	let isTargetClass = className => targetClasses.indexOf(className) != -1;
-
 	// Always slaughter domestic animals instead of using a normal attack
-	if (isTargetClass("Domestic") && this.template.Slaughter)
+	if (this.template.Slaughter && cmpIdentity.HasClass("Domestic"))
 		return "Slaughter";
 
-	let types = this.GetAttackTypes().filter(type => !this.GetRestrictedClasses(type).some(isTargetClass));
+	let types = this.GetAttackTypes().filter(type => this.CanAttack(target, [type]));
 
-	if (this.maxAmmo && !this.ammo) {
-		let rangedIndex = types.indexOf("Ranged");
-		if (rangedIndex != -1)
-			types.splice(rangedIndex, 1);
-	}
-	
+	// Check whether the target is capturable and prefer that when it is allowed.
 	let captureIndex = types.indexOf("Capture");
 	if (captureIndex != -1)
 	{
-		let cmpCapturable = QueryMiragedInterface(target, IID_Capturable);
-
-		let cmpPlayer = QueryOwnerInterface(this.entity);
-		if (allowCapture && cmpPlayer && cmpCapturable && cmpCapturable.CanCapture(cmpPlayer.GetPlayerID()))
+		if (allowCapture)
 			return "Capture";
-		// not capturable, so remove this attack
 		types.splice(captureIndex, 1);
 	}
 
-	let isPreferred = className => this.GetPreferredClasses(className).some(isTargetClass);
+	let targetClasses = cmpIdentity.GetClassesList();
+	let isPreferred = attackType => MatchesClassList(targetClasses, this.GetPreferredClasses(attackType));
 
 	return types.sort((a, b) =>
 		(types.indexOf(a) + (isPreferred(a) ? types.length : 0)) -
@@ -616,6 +576,19 @@ Attack.prototype.GetTimers = function(type)
 	return { "prepare": prepare, "repeat": repeat, "reload": reload, "aim": aim};
 };
 
+Attack.prototype.GetSplashData = function(type)
+{
+	if (!this.template[type].Splash)
+		return undefined;
+
+	return {
+		"attackData": this.GetAttackEffectsData(type, true),
+		"friendlyFire": this.template[type].Splash.FriendlyFire == "true",
+		"radius": ApplyValueModificationsToEntity("Attack/" + type + "/Splash/Range", +this.template[type].Splash.Range, this.entity),
+		"shape": this.template[type].Splash.Shape,
+	};
+};
+
 Attack.prototype.GetAttackStrengths = function(type)
 {
 	// Work out the attack values with technology effects
@@ -638,17 +611,6 @@ Attack.prototype.GetAttackStrengths = function(type)
 		ret[damageType] = applyMods(damageType);
 
 	return ret;
-};
-
-Attack.prototype.GetSplashDamage = function(type)
-{
-	if (!this.template[type].Splash)
-		return false;
-
-	let splash = this.GetAttackStrengths(type + ".Splash");
-	splash.friendlyFire = this.template[type].Splash.FriendlyFire != "false";
-	splash.shape = this.template[type].Splash.Shape;
-	return splash;
 };
 
 Attack.prototype.GetRange = function(type)
@@ -785,76 +747,23 @@ Attack.prototype.PerformAttack = function(type, target)
 
 		let data = {
 			"type": type,
-			"attacker": this.entity,
+			"attackData": this.GetAttackEffectsData(type),
 			"target": target,
-			"strengths": this.GetAttackStrengths(type),
+			"attacker": this.entity,
+			"attackerOwner": attackerOwner,
 			"position": realTargetPosition,
 			"direction": missileDirection,
 			"projectileId": id,
-			"bonus": this.GetBonusTemplate(type),
-			"isSplash": false,
-			"attackerOwner": attackerOwner,
-			"attackImpactSound": attackImpactSound
+			"attackImpactSound": attackImpactSound,
+			"splash": this.GetSplashData(type),
+			"friendlyFire": this.template[type].Projectile.FriendlyFire == "true",
 		};
-		if (this.template.Ranged.Splash)
-		{
-			data.friendlyFire = this.template.Ranged.Splash.FriendlyFire != "false";
-			data.radius = +this.template.Ranged.Splash.Range;
-			data.shape = this.template.Ranged.Splash.Shape;
-			data.isSplash = true;
-			data.splashStrengths = this.GetAttackStrengths(type + ".Splash");
-			data.splashBonus = this.GetBonusTemplate(type + ".Splash");
-
-			if (this.template.Ranged.Splash.KnockBack)
-				data.splashKnockBack = this.template.Ranged.Splash.KnockBack;
-		}
-
-		if (this.template.Ranged.KnockBack)
-			data.knockBack = this.template.Ranged.KnockBack;
 
 		cmpTimer.SetTimeout(SYSTEM_ENTITY, IID_Damage, "MissileHit", timeToTarget * 1000 + +this.template.Ranged.Delay, data);
 	}
-	else if (type == "Capture")
-	{
-		if (attackerOwner == INVALID_PLAYER)
-			return;
-
-		let multiplier = GetDamageBonus(target, this.GetBonusTemplate(type));
-		let cmpHealth = Engine.QueryInterface(target, IID_Health);
-		if (!cmpHealth || cmpHealth.GetHitpoints() == 0)
-			return;
-		multiplier *= cmpHealth.GetMaxHitpoints() / (0.1 * cmpHealth.GetMaxHitpoints() + 0.9 * cmpHealth.GetHitpoints());
-
-		let cmpCapturable = Engine.QueryInterface(target, IID_Capturable);
-		if (!cmpCapturable || !cmpCapturable.CanCapture(attackerOwner))
-			return;
-
-		let strength = this.GetAttackStrengths("Capture").value * multiplier;
-		if (cmpCapturable.Reduce(strength, attackerOwner) && IsOwnedByEnemyOfPlayer(attackerOwner, target))
-			Engine.PostMessage(target, MT_Attacked, {
-				"attacker": this.entity,
-				"target": target,
-				"type": type,
-				"damage": strength,
-				"attackerOwner": attackerOwner
-			});
-	}
 	else
 	{
-		// Melee attack - hurt the target immediately
-		let data = {
-			"strengths": this.GetAttackStrengths(type),
-			"target": target,
-			"attacker": this.entity,
-			"multiplier": GetDamageBonus(target, this.GetBonusTemplate(type)),
-			"type": type,
-			"attackerOwner": attackerOwner
-		};
-
-		if (this.template.Melee && this.template.Melee.KnockBack)
-			data.knockBack = this.template.Melee.KnockBack;
-
-		cmpDamage.CauseDamage(data);
+		Attacking.HandleAttackEffects(target, type, this.GetAttackEffectsData(type), this.entity, attackerOwner);
 	}
 };
 

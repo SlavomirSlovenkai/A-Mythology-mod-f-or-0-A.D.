@@ -91,6 +91,29 @@
     </Rates>
     <Interval>1000</Interval>
   </ResourceTrickle>
-  <StatisticsTracker/>
+  <StatisticsTracker>
+    <!-- The summary screen and lobby rankings expect these classes, but additional classes may be added. -->
+    <UnitClasses datatype="tokens">
+      Cavalry
+      Champion
+      Domestic
+      FemaleCitizen
+      Hero
+      Infantry
+      Ship
+      Siege
+      Trader
+      Worker
+    </UnitClasses>
+    <StructureClasses datatype="tokens">
+      Economic
+      CivCentre
+      Fortress
+      House
+      Military
+      Outpost
+      Wonder
+    </StructureClasses>
+  </StatisticsTracker>
   <TechnologyManager/>
 </Entity>

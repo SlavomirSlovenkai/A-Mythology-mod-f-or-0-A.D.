@@ -9,20 +9,28 @@
     <EndOfAlertRange>190</EndOfAlertRange>
     <SearchRange>100</SearchRange>
   </AlertRaiser>
-  <Armour>
+  <Resistance>
+    <Entity>
+      <Damage>
     <Hack op="add">5</Hack>
     <Pierce op="add">5</Pierce>
+      </Damage>
+    </Entity>
     <Foundation>
+      <Damage>
       <Hack>5</Hack>
       <Pierce>15</Pierce>
       <Crush>3</Crush>
+      </Damage>
     </Foundation>
-  </Armour>
+  </Resistance>
   <Attack>
     <Ranged>
+      <Damage>
       <Hack>0.0</Hack>
       <Pierce>12.0</Pierce>
       <Crush>0.0</Crush>
+      </Damage>
       <MaxRange>72.0</MaxRange>
       <MinRange>0.0</MinRange>
       <Projectile>

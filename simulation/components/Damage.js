@@ -364,4 +364,3 @@ Damage.prototype.TargetKilled = function(attacker, target, attackerOwner)
 		cmpLooter.Collect(target);
 };
 
-Engine.RegisterSystemComponentType(IID_Damage, "Damage", Damage);

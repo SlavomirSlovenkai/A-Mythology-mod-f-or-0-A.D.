@@ -5,15 +5,19 @@
       <MaxAmmo>20</MaxAmmo>
       <RefillAmount>0</RefillAmount>
       <RefillTime>1000</RefillTime>
+	  <Damage>
       <Hack>0</Hack>
       <Pierce>9.0</Pierce>
       <Crush>0</Crush>
+      </Damage>
       <MaxRange>16.0</MaxRange>
       <MinRange>0.0</MinRange>
       <Projectile>
         <Speed>75.0</Speed>
         <Gravity>9.81</Gravity>
         <Spread>3.0</Spread>
+        <FriendlyFire>false</FriendlyFire>
+        <LaunchPoint y="3"/>
       </Projectile>
       <PrepareTime>1000</PrepareTime>
       <RepeatTime>1500</RepeatTime>
