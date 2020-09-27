@@ -1973,7 +1973,7 @@ UnitAI.prototype.UnitFsmSpec = {
 					cmpStamina.CancelRunningTimer();
 			},
 			
-			"MoveCompleted": function() {
+			"MovementUpdate": function() {
 				this.FinishOrder();
 				this.ResetSpeedMultiplier();
 				this.chargeDamage = false;
@@ -2016,7 +2016,7 @@ UnitAI.prototype.UnitFsmSpec = {
 				cmpAttack.DealChargeDamage(msg.data.added);
 			},
 			
-			"MoveCompleted": function() {
+			"MovementUpdate": function() {
 				this.FinishOrder();
 				this.ResetSpeedMultiplier();
 				this.chargeDamage = false;
