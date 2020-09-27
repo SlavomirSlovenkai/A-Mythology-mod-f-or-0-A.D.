@@ -4140,6 +4140,8 @@ UnitAI.prototype.OnDestroy = function()
 		cmpRangeManager.DestroyActiveQuery(this.losHealRangeQuery);
 	if (this.losAttackRangeQuery)
 		cmpRangeManager.DestroyActiveQuery(this.losAttackRangeQuery);
+	if (this.chargeDamageRangeQuery)
+		cmpRangeManager.DestroyActiveQuery(this.chargeDamageRangeQuery);
 };
 
 UnitAI.prototype.OnVisionRangeChanged = function(msg)
@@ -4184,6 +4186,9 @@ UnitAI.prototype.OnPickupCanceled = function(msg)
  */
 UnitAI.prototype.SetupRangeQueries = function()
 {
+
+	this.SetupChargeQuery();
+
 	// Only skittish animals use this for now.
 	if (this.template.NaturalBehaviour && this.template.NaturalBehaviour == "skittish")
 		this.SetupLOSRangeQuery();
@@ -4206,7 +4211,33 @@ UnitAI.prototype.UpdateRangeQueries = function()
 
 	if (this.losAttackRangeQuery)
 		this.SetupAttackRangeQuery(cmpRangeManager.IsActiveQueryEnabled(this.losAttackRangeQuery));
+
+	if (this.chargeDamageRangeQuery)
+		this.SetupChargeQuery(cmpRangeManager.IsActiveQueryEnabled(this.chargeDamageRangeQuery));
 };
+
+UnitAI.prototype.SetupChargeQuery = function(enable = true)
+{
+	let cmpRangeManager = Engine.QueryInterface(SYSTEM_ENTITY, IID_RangeManager);
+
+	if (this.chargeDamageRangeQuery)
+	{
+		cmpRangeManager.DestroyActiveQuery(this.chargeDamageRangeQuery);
+		this.chargeDamageRangeQuery = undefined;
+	}
+	if (!cmpPlayer)
+		return;
+	
+	let max = 5;
+	let cmpIdentity = Engine.QueryInterface(this.entity, IID_Identity);
+
+	let players = cmpPlayer.GetEnemies();
+	let range = {"min": 0, "max": max};
+	this.chargeDamageRangeQuery = cmpRangeManager.CreateActiveQuery(this.entity, range.min, range.max, players, IID_Health, cmpRangeManager.GetEntityFlagMask("normal"));
+
+	if (enable)
+		cmpRangeManager.EnableActiveQuery(this.chargeDamageRangeQuery);
+}
 
 /**
  * Set up a range query for all enemy units within LOS range.
@@ -4800,6 +4831,8 @@ UnitAI.prototype.OnRangeUpdate = function(msg)
 		this.UnitFsm.ProcessMessage(this, { "type": "LosHealRangeUpdate", "data": msg });
 	else if (msg.tag == this.losAttackRangeQuery)
 		this.UnitFsm.ProcessMessage(this, { "type": "LosAttackRangeUpdate", "data": msg });
+	else if (msg.tag == this.chargeDamageRangeQuery)
+		this.UnitFsm.ProcessMessage(this, {"type": "ChargeDamageRangeUpdate", "data": msg});
 };
 
 UnitAI.prototype.OnPackFinished = function(msg)
@@ -5132,6 +5165,21 @@ UnitAI.prototype.StopMoving = function()
 	if (cmpUnitMotion)
 		cmpUnitMotion.StopMoving();
 };
+
+UnitAI.prototype.StopRuning = function()
+{
+	this.chargeDamage = false;
+	this.ResetSpeedMultiplier();
+	if (this.IsAnimal())
+		this.SetNextState("ANIMAL.WALKING");
+	else
+		this.SetNextState("WALKING");
+};
+
+UnitAI.prototype.SlowFleeing = function()
+{
+	this.ResetSpeedMultiplier();
+}
 
 /**
  * Generic dispatcher for other MoveTo functions.
@@ -5762,6 +5810,7 @@ UnitAI.prototype.GetTargetPositions = function()
 		switch (order.type)
 		{
 		case "Walk":
+		case "Run":
 		case "WalkAndFight":
 		case "WalkToPointRange":
 		case "MoveIntoFormation":
@@ -5776,6 +5825,7 @@ UnitAI.prototype.GetTargetPositions = function()
 		case "Flee":
 		case "LeaveFoundation":
 		case "Attack":
+		case "Charge":
 		case "Heal":
 		case "Gather":
 		case "ReturnResource":
@@ -7018,6 +7068,16 @@ UnitAI.prototype.SetFacePointAfterMove = function(val)
 		cmpMotion.SetFacePointAfterMove(val);
 };
 
+UnitAI.prototype.GetTargetsAlongChargePath = function()
+{
+	if (!this.chargeDamageRangeQuery)
+		return [];
+
+	let cmpRangeManager = Engine.QueryInterface(SYSTEM_ENTITY, IID_RangeManager);
+	let entities = cmpRangeManager.ResetActiveQuery(this.chargeDamageRangeQuery);
+	return entities;
+};
+
 UnitAI.prototype.GetFacePointAfterMove = function()
 {
 	let cmpUnitMotion = Engine.QueryInterface(this.entity, IID_UnitMotion);
@@ -7044,6 +7104,8 @@ UnitAI.prototype.AttackEntitiesByPreference = function(ents)
 	let entsByPreferences = {};
 	let preferences = [];
 	let entsWithoutPref = [];
+
+	let noOrganic = true;
 	for (let ent of ents)
 	{
 		if (!attackfilter(ent))
@@ -7058,6 +7120,18 @@ UnitAI.prototype.AttackEntitiesByPreference = function(ents)
 		}
 		else
 			entsByPreferences[pref].push(ent);
+		// check if there are no organic units
+		if (this.rage && noOrganic) {
+			let cmpIdentity = Engine.QueryInterface(ent, IID_Identity);
+			if (cmpIdentity && cmpIdentity.HasClass("Organic")) {
+				noOrganic = false;
+			}
+		}
+	}
+
+	if (this.rage && noOrganic) {
+		this.rage = false;
+		this.SwitchToStance(this.template.DefaultStance);
 	}
 
 	if (preferences.length)
@@ -7070,6 +7144,24 @@ UnitAI.prototype.AttackEntitiesByPreference = function(ents)
 
 	return this.RespondToTargetedEntities(entsWithoutPref);
 };
+
+UnitAI.prototype.ChargeToTargetPosition = function(target)
+{
+	if (!target)
+		return false;
+
+	if (!this.CheckTargetVisible(target) || this.IsTurret())
+		return false;
+
+	let cmpPosition = Engine.QueryInterface(target, IID_Position);
+	if (!cmpPosition || !cmpPosition.IsInWorld())
+		return false;
+
+	let position  = cmpPosition.GetPosition2D();
+	let cmpUnitMotion = Engine.QueryInterface(this.entity, IID_UnitMotion);
+	return cmpUnitMotion && cmpUnitMotion.MoveToPointRange(position.x, position.y, 0, 0);
+}
+
 
 /**
  * Call UnitAI.funcname(args) on all formation members.
