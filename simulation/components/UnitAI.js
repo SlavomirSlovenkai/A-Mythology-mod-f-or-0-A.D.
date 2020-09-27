@@ -1601,7 +1601,38 @@ UnitAI.prototype.UnitFsmSpec = {
 				}
 			}
 		},
-
+		//MYTHO_START
+		"RELOAD": {
+			"enter": function() {
+				let cmpAttack = Engine.QueryInterface(this.entity, IID_Attack);
+				// Check if we can reload
+				if (cmpAttack && cmpAttack.CanReload()) {
+					// Start timer and animation
+					let tt = cmpAttack.GetReloadTimer();
+					this.StartTimer(tt);
+					let cmpVisual = Engine.QueryInterface(this.entity, IID_Visual);
+					cmpVisual.SelectAnimation("reload", true, 1.0);
+				} 
+				// We cannot reload from whatever reason
+				else {
+					this.SetNextState("IDLE");
+					return;
+				}
+			},
+			// At this point we have reloaded
+			// So go back to idle
+			"Timer": function(msg) {
+				let cmpAttack = Engine.QueryInterface(this.entity, IID_Attack);
+				if (cmpAttack)
+					cmpAttack.Reloaded();
+				this.SetNextState("IDLE");
+				return;
+			},
+			"leave": function() {
+				this.StopTimer();
+			}
+		},
+		//MYTHO_END
 		"IDLE": {
 			"Order.Cheer": function() {
 				this.SetNextState("CHEERING");
